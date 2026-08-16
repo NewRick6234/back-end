@@ -1,10 +1,22 @@
- const express = require('express');
+const Database = require('better-sqlite3'); 
+const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 
 const app = express();
 app.use(express.json());
 app.use(cors());
+
+
+
+
+// Substitua pelo nome ou caminho do seu arquivo .db existente
+const db = new Database('ibsaude.sqlite');
+
+// Exemplo: Consultar dados de uma tabela que já existe no seu banco
+const stmt = db.prepare('SELECT * FROM remedios');
+const resultados = stmt.all();
+console.log(resultados);
 
 const ANVISA_API_URL = 'https://consultas.anvisa.gov.br/api/consulta/medicamento/produtos';
 
@@ -83,6 +95,44 @@ app.get('/api/medicamentos/buscar', async (req, res) => {
     });
   }
 });
+
+app.post('/cadastrar', (req, res) => {
+    try {
+        // Extrai todos os campos enviados pelo cliente
+        const { nome, classificacao, codigo, uso } = req.body;
+
+        // Validação básica dos campos obrigatórios
+        if (!nome || !codigo) {
+            return res.status(400).json({ 
+                erro: 'Os campos "nome" e "codigo" são obrigatórios.' 
+            });
+        }
+
+        // Query SQL incluindo todas as colunas da sua tabela
+        const inserir = db.prepare(`
+            INSERT INTO remedios (nome, classificacao, codigo, uso) 
+            VALUES (?, ?, ?, ?)
+        `);
+
+        // Executa a inserção passando os valores na mesma ordem da query
+        const resultado = inserir.run(nome, classificacao || null, codigo, uso || null);
+
+        console.log(`Registro inserido com ID: ${resultado.lastInsertRowid}`);
+
+        return res.status(201).json({
+            mensagem: 'Remédio cadastrado com sucesso!',
+            id: resultado.lastInsertRowid
+        });
+
+    } catch (error) {
+        console.error('Erro ao cadastrar no banco:', error.message);
+        return res.status(500).json({
+            erro: 'Falha ao salvar no banco de dados.',
+            detalhes: error.message
+        });
+    }
+});
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
