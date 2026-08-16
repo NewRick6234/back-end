@@ -133,6 +133,22 @@ app.post('/cadastrar', (req, res) => {
     }
 });
 
+app.get('/remedios', (req, res) => {
+  try {
+    // .all() executa o SELECT e retorna um Array com todos os registros encontrados
+    const stmt = db.prepare('SELECT * FROM remedios');
+    const listaRemedios = stmt.all();
+
+    return res.json({
+      total: listaRemedios.length,
+      remedios: listaRemedios
+    });
+  } catch (error) {
+    console.error('Erro no GET /remedios:', error.message);
+    return res.status(500).json({ erro: 'Erro ao consultar o banco de dados.' });
+  }
+});
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
